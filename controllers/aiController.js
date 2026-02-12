@@ -1,57 +1,37 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+exports.transformLyrics = async (req, res) => {
+  const { lyrics, mood } = req.body;
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const explainLyrics = async (req, res) => {
-  const { lyrics } = req.body;
-
-  if (!lyrics) {
-    return res.status(400).json({ message: "Lyrics required" });
+  if (!lyrics || !mood) {
+    return res.json({ success: false, response: "Missing data" });
   }
 
   try {
-   const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
-
-
     const prompt = `
-Analyze the following song lyrics.
+    Rewrite the following song lyrics in a ${mood} mood:
 
-1. Detect the overall mood (Happy, Sad, Romantic, Motivational, Angry).
-2. Explain the meaning in simple words.
+    ${lyrics}
+    `;
 
-Lyrics:
-${lyrics}
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
 
-Respond ONLY in valid JSON like this:
-{
-  "mood": "Romantic",
-  "explanation": "Short explanation here"
-}
-`;
+    const data = await response.json();
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "AI failed to transform";
 
-    // 🔥 Parse Gemini JSON safely
-    const jsonStart = text.indexOf("{");
-    const jsonEnd = text.lastIndexOf("}") + 1;
-
-    const parsed = JSON.parse(text.slice(jsonStart, jsonEnd));
-
-    res.json({
-      mood: parsed.mood,
-      explanation: parsed.explanation
-    });
-
+    res.json({ success: true, response: text });
   } catch (error) {
-  console.error("Gemini API error:", error);
-
-  res.status(500).json({
-    mood: "Unknown",
-    explanation: "Gemini API error. Check backend logs."
-  });
-}
-
+    console.error(error);
+    res.json({ success: false, response: "AI Error" });
+  }
 };
-
-module.exports = { explainLyrics };

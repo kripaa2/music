@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/auth");
-const { explainLyrics } = require("../controllers/aiController");
+const aiController = require("../controllers/aiController");
 
-router.post("/explain", auth, explainLyrics);
+router.post("/transform", aiController.transformLyrics);
 
 module.exports = router;

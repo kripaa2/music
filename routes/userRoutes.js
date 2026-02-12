@@ -1,8 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/auth");
-const { getHistory } = require("../controllers/userController");
 
-router.get("/history", auth, getHistory);
+router.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  console.log("LOGIN HIT:", email);
+
+  if (email && password) {
+    return res.json({
+      success: true,
+      token: "test-token"
+    });
+  }
+
+  res.json({ success: false });
+});
 
 module.exports = router;
